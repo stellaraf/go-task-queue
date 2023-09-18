@@ -4,14 +4,14 @@
   <br/>
   <h3><code>taskqueue</code></h3>
   <br/>
-  <a href="https://pkg.go.dev/github.com/stellaraf/go-task-queue">
-    <img src="https://pkg.go.dev/badge/github.com/stellaraf/go-task-queue.svg" alt="Go Reference">
-  </a>
   <a href="https://github.com/stellaraf/go-task-queue/tags">
     <img alt="GitHub tag (latest SemVer)" src="https://img.shields.io/github/v/tag/stellaraf/go-task-queue?color=%2306D6A0&label=version&style=for-the-badge">
   </a>
   <a href="https://github.com/stellaraf/go-utils/actions/workflows/tests.yml">
     <img alt="GitHub Workflow Status" src="https://img.shields.io/github/actions/workflow/status/stellaraf/go-utils/tests.yml?style=for-the-badge">
+  </a>
+  <a href="https://pkg.go.dev/github.com/stellaraf/go-task-queue">
+    <img alt="GoDoc Reference" src="https://img.shields.io/badge/godoc-reference-5272B4.svg?style=for-the-badge">
   </a>
   <br/>
   <br/>
