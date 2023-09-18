@@ -295,4 +295,31 @@ func TestJSONTaskQueue_Complex(t *testing.T) {
 		assert.NotNil(t, popped.NestedPointer)
 		assert.Equal(t, value.NestedPointer.String, popped.NestedPointer.String)
 	})
+
+	t.Run("add pointer", func(t *testing.T) {
+		err := queue.Clear()
+		require.NoError(t, err)
+		value := &Value{
+			String:        "string",
+			Number:        1,
+			Time:          now,
+			Nested:        Nested{String: "nested"},
+			Array:         array,
+			NestedPointer: &Nested{String: "pointer"},
+		}
+		err = queue.Add(value)
+		require.NoError(t, err)
+	})
+	t.Run("pop pointer", func(t *testing.T) {
+		var popped *Value
+		err := queue.Pop(&popped)
+		require.NoError(t, err)
+		assert.Equal(t, value.String, popped.String)
+		assert.Equal(t, value.Number, popped.Number)
+		assert.Equal(t, value.Time.Format(time.RFC3339Nano), popped.Time.Format(time.RFC3339Nano))
+		assert.EqualValues(t, value.Array, popped.Array)
+		assert.Equal(t, value.Nested.String, popped.Nested.String)
+		assert.NotNil(t, popped.NestedPointer)
+		assert.Equal(t, value.NestedPointer.String, popped.NestedPointer.String)
+	})
 }
