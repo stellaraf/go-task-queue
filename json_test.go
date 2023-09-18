@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alicebob/miniredis/v2"
 	taskqueue "github.com/stellaraf/go-task-queue"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -13,33 +12,41 @@ import (
 
 func Test_NewJSONTaskQueue(t *testing.T) {
 	name := fmt.Sprintf("%s--%s", t.Name(), time.Now().Format(time.RFC3339Nano))
-	mr := miniredis.RunT(t)
-	ctx := taskqueue.WithContext(mr.Ctx)
-	t.Cleanup(func() {
-		mr.CtxCancel()
-		mr.Close()
-	})
+	mr := RunT(t)
+	var ctx, addr, uri taskqueue.Option
+	if UseMini {
+		ctx = taskqueue.WithContext(mr.Ctx)
+		addr = taskqueue.WithHost(mr.Addr())
+		uri = taskqueue.WithURI(fmt.Sprintf("redis://%s", mr.Addr()))
+	} else {
+		ctx = taskqueue.WithContext(Ctx)
+		addr = taskqueue.WithHost(Addr)
+		uri = taskqueue.WithURI(fmt.Sprintf("redis://%s", Addr))
+	}
 	t.Run("base", func(t *testing.T) {
 		t.Parallel()
-		_, err := taskqueue.NewJSON(name, ctx, taskqueue.WithHost(mr.Addr()))
+		_, err := taskqueue.NewJSON(name, ctx, addr)
 		require.NoError(t, err)
 	})
 
 	t.Run("with uri", func(t *testing.T) {
 		t.Parallel()
-		_, err := taskqueue.NewJSON(name, ctx, taskqueue.WithURI(fmt.Sprintf("redis://%s", mr.Addr())))
+		_, err := taskqueue.NewJSON(name, ctx, uri)
 		require.NoError(t, err)
 	})
 }
 
 func TestJSONTaskQueue_Clear(t *testing.T) {
-	mr := miniredis.RunT(t)
-	ctx := taskqueue.WithContext(mr.Ctx)
-	addr := taskqueue.WithHost(mr.Addr())
-	t.Cleanup(func() {
-		mr.CtxCancel()
-		mr.Close()
-	})
+	mr := RunT(t)
+	var ctx, addr taskqueue.Option
+	if UseMini {
+		ctx = taskqueue.WithContext(mr.Ctx)
+		addr = taskqueue.WithHost(mr.Addr())
+	} else {
+		ctx = taskqueue.WithContext(Ctx)
+		addr = taskqueue.WithHost(Addr)
+	}
+
 	name := fmt.Sprintf("%s--%s", t.Name(), time.Now().Format(time.RFC3339Nano))
 	queue, err := taskqueue.NewJSON(name, ctx, addr)
 	require.NoError(t, err)
@@ -60,13 +67,16 @@ func TestJSONTaskQueue_Clear(t *testing.T) {
 }
 
 func TestJSONTaskQueue_Size(t *testing.T) {
-	mr := miniredis.RunT(t)
-	ctx := taskqueue.WithContext(mr.Ctx)
-	addr := taskqueue.WithHost(mr.Addr())
-	t.Cleanup(func() {
-		mr.CtxCancel()
-		mr.Close()
-	})
+	mr := RunT(t)
+	var ctx, addr taskqueue.Option
+	if UseMini {
+		ctx = taskqueue.WithContext(mr.Ctx)
+		addr = taskqueue.WithHost(mr.Addr())
+	} else {
+		ctx = taskqueue.WithContext(Ctx)
+		addr = taskqueue.WithHost(Addr)
+	}
+
 	name := fmt.Sprintf("%s--%s", t.Name(), time.Now().Format(time.RFC3339Nano))
 	queue, err := taskqueue.NewJSON(name, ctx, addr)
 	defer queue.Clear()
@@ -83,13 +93,15 @@ func TestJSONTaskQueue_Size(t *testing.T) {
 }
 
 func TestJSONTaskQueue_Add(t *testing.T) {
-	mr := miniredis.RunT(t)
-	ctx := taskqueue.WithContext(mr.Ctx)
-	addr := taskqueue.WithHost(mr.Addr())
-	t.Cleanup(func() {
-		mr.CtxCancel()
-		mr.Close()
-	})
+	mr := RunT(t)
+	var ctx, addr taskqueue.Option
+	if UseMini {
+		ctx = taskqueue.WithContext(mr.Ctx)
+		addr = taskqueue.WithHost(mr.Addr())
+	} else {
+		ctx = taskqueue.WithContext(Ctx)
+		addr = taskqueue.WithHost(Addr)
+	}
 
 	name := fmt.Sprintf("%s--%s", t.Name(), time.Now().Format(time.RFC3339Nano))
 	queue, err := taskqueue.NewJSON(name, ctx, addr)
@@ -123,13 +135,15 @@ func TestJSONTaskQueue_Add(t *testing.T) {
 }
 
 func TestJSONTaskQueue_Pop(t *testing.T) {
-	mr := miniredis.RunT(t)
-	ctx := taskqueue.WithContext(mr.Ctx)
-	addr := taskqueue.WithHost(mr.Addr())
-	t.Cleanup(func() {
-		mr.CtxCancel()
-		mr.Close()
-	})
+	mr := RunT(t)
+	var ctx, addr taskqueue.Option
+	if UseMini {
+		ctx = taskqueue.WithContext(mr.Ctx)
+		addr = taskqueue.WithHost(mr.Addr())
+	} else {
+		ctx = taskqueue.WithContext(Ctx)
+		addr = taskqueue.WithHost(Addr)
+	}
 
 	name := fmt.Sprintf("%s--%s", t.Name(), time.Now().Format(time.RFC3339Nano))
 	queue, err := taskqueue.NewJSON(name, ctx, addr)
@@ -178,13 +192,15 @@ func TestJSONTaskQueue_Pop(t *testing.T) {
 }
 
 func TestJSONTaskQueue_Remove(t *testing.T) {
-	mr := miniredis.RunT(t)
-	ctx := taskqueue.WithContext(mr.Ctx)
-	addr := taskqueue.WithHost(mr.Addr())
-	t.Cleanup(func() {
-		mr.CtxCancel()
-		mr.Close()
-	})
+	mr := RunT(t)
+	var ctx, addr taskqueue.Option
+	if UseMini {
+		ctx = taskqueue.WithContext(mr.Ctx)
+		addr = taskqueue.WithHost(mr.Addr())
+	} else {
+		ctx = taskqueue.WithContext(Ctx)
+		addr = taskqueue.WithHost(Addr)
+	}
 
 	name := fmt.Sprintf("%s--%s", t.Name(), time.Now().Format(time.RFC3339Nano))
 	queue, err := taskqueue.NewJSON(name, ctx, addr)
@@ -225,13 +241,15 @@ func TestJSONTaskQueue_Remove(t *testing.T) {
 }
 
 func TestJSONTaskQueue_Complex(t *testing.T) {
-	mr := miniredis.RunT(t)
-	ctx := taskqueue.WithContext(mr.Ctx)
-	addr := taskqueue.WithHost(mr.Addr())
-	t.Cleanup(func() {
-		mr.CtxCancel()
-		mr.Close()
-	})
+	mr := RunT(t)
+	var ctx, addr taskqueue.Option
+	if UseMini {
+		ctx = taskqueue.WithContext(mr.Ctx)
+		addr = taskqueue.WithHost(mr.Addr())
+	} else {
+		ctx = taskqueue.WithContext(Ctx)
+		addr = taskqueue.WithHost(Addr)
+	}
 
 	name := fmt.Sprintf("%s--%s", t.Name(), time.Now().Format(time.RFC3339Nano))
 	queue, err := taskqueue.NewJSON(name, ctx, addr)

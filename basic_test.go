@@ -1,7 +1,9 @@
 package taskqueue_test
 
 import (
+	"context"
 	"fmt"
+	"os"
 	"testing"
 	"time"
 
@@ -13,35 +15,60 @@ import (
 
 const zero uint64 = uint64(0)
 
+var Addr string
+var Ctx context.Context
+var UseMini bool
+var RunT func(t miniredis.Tester) *miniredis.Miniredis = func(t miniredis.Tester) *miniredis.Miniredis {
+	Addr = "localhost:6379"
+	Ctx = context.Background()
+	UseMini = false
+	return nil
+}
+
+func init() {
+	ci := os.Getenv("CI") == "true"
+	if !ci {
+		RunT = miniredis.RunT
+		UseMini = true
+	}
+}
+
 func Test_NewBasicTaskQueue(t *testing.T) {
 	name := fmt.Sprintf("%s--%s", t.Name(), time.Now().Format(time.RFC3339Nano))
-	mr := miniredis.RunT(t)
-	ctx := taskqueue.WithContext(mr.Ctx)
-	t.Cleanup(func() {
-		mr.CtxCancel()
-		mr.Close()
-	})
+	mr := RunT(t)
+	var ctx, addr taskqueue.Option
+	if UseMini {
+		ctx = taskqueue.WithContext(mr.Ctx)
+		addr = taskqueue.WithHost(mr.Addr())
+	} else {
+		ctx = taskqueue.WithContext(Ctx)
+		addr = taskqueue.WithHost(Addr)
+	}
+
 	t.Run("base", func(t *testing.T) {
 		t.Parallel()
-		_, err := taskqueue.NewBasic(name, ctx, taskqueue.WithHost(mr.Addr()))
+		_, err := taskqueue.NewBasic(name, ctx, addr)
 		require.NoError(t, err)
 	})
 
 	t.Run("with uri", func(t *testing.T) {
 		t.Parallel()
-		_, err := taskqueue.NewBasic(name, ctx, taskqueue.WithURI(fmt.Sprintf("redis://%s", mr.Addr())))
+		_, err := taskqueue.NewBasic(name, ctx, taskqueue.WithURI(fmt.Sprintf("redis://%s", Addr)))
 		require.NoError(t, err)
 	})
 }
 
 func TestBasicTaskQueue_Clear(t *testing.T) {
-	mr := miniredis.RunT(t)
-	ctx := taskqueue.WithContext(mr.Ctx)
-	addr := taskqueue.WithHost(mr.Addr())
-	t.Cleanup(func() {
-		mr.CtxCancel()
-		mr.Close()
-	})
+	mr := RunT(t)
+	var ctx, addr taskqueue.Option
+	if UseMini {
+		ctx = taskqueue.WithContext(mr.Ctx)
+		addr = taskqueue.WithHost(mr.Addr())
+	} else {
+		ctx = taskqueue.WithContext(Ctx)
+		addr = taskqueue.WithHost(Addr)
+	}
+
 	name := fmt.Sprintf("%s--%s", t.Name(), time.Now().Format(time.RFC3339Nano))
 	queue, err := taskqueue.NewBasic(name, ctx, addr)
 	require.NoError(t, err)
@@ -62,13 +89,16 @@ func TestBasicTaskQueue_Clear(t *testing.T) {
 }
 
 func TestBasicTaskQueue_Size(t *testing.T) {
-	mr := miniredis.RunT(t)
-	ctx := taskqueue.WithContext(mr.Ctx)
-	addr := taskqueue.WithHost(mr.Addr())
-	t.Cleanup(func() {
-		mr.CtxCancel()
-		mr.Close()
-	})
+	mr := RunT(t)
+	var ctx, addr taskqueue.Option
+	if UseMini {
+		ctx = taskqueue.WithContext(mr.Ctx)
+		addr = taskqueue.WithHost(mr.Addr())
+	} else {
+		ctx = taskqueue.WithContext(Ctx)
+		addr = taskqueue.WithHost(Addr)
+	}
+
 	name := fmt.Sprintf("%s--%s", t.Name(), time.Now().Format(time.RFC3339Nano))
 	queue, err := taskqueue.NewBasic(name, ctx, addr)
 	defer queue.Clear()
@@ -85,13 +115,15 @@ func TestBasicTaskQueue_Size(t *testing.T) {
 }
 
 func TestBasicTaskQueue_Add(t *testing.T) {
-	mr := miniredis.RunT(t)
-	ctx := taskqueue.WithContext(mr.Ctx)
-	addr := taskqueue.WithHost(mr.Addr())
-	t.Cleanup(func() {
-		mr.CtxCancel()
-		mr.Close()
-	})
+	mr := RunT(t)
+	var ctx, addr taskqueue.Option
+	if UseMini {
+		ctx = taskqueue.WithContext(mr.Ctx)
+		addr = taskqueue.WithHost(mr.Addr())
+	} else {
+		ctx = taskqueue.WithContext(Ctx)
+		addr = taskqueue.WithHost(Addr)
+	}
 
 	name := fmt.Sprintf("%s--%s", t.Name(), time.Now().Format(time.RFC3339Nano))
 	queue, err := taskqueue.NewBasic(name, ctx, addr)
@@ -114,13 +146,15 @@ func TestBasicTaskQueue_Add(t *testing.T) {
 }
 
 func TestBasicTaskQueue_Pop(t *testing.T) {
-	mr := miniredis.RunT(t)
-	ctx := taskqueue.WithContext(mr.Ctx)
-	addr := taskqueue.WithHost(mr.Addr())
-	t.Cleanup(func() {
-		mr.CtxCancel()
-		mr.Close()
-	})
+	mr := RunT(t)
+	var ctx, addr taskqueue.Option
+	if UseMini {
+		ctx = taskqueue.WithContext(mr.Ctx)
+		addr = taskqueue.WithHost(mr.Addr())
+	} else {
+		ctx = taskqueue.WithContext(Ctx)
+		addr = taskqueue.WithHost(Addr)
+	}
 
 	name := fmt.Sprintf("%s--%s", t.Name(), time.Now().Format(time.RFC3339Nano))
 	queue, err := taskqueue.NewBasic(name, ctx, addr)
@@ -149,13 +183,15 @@ func TestBasicTaskQueue_Pop(t *testing.T) {
 }
 
 func TestBasicTaskQueue_Remove(t *testing.T) {
-	mr := miniredis.RunT(t)
-	ctx := taskqueue.WithContext(mr.Ctx)
-	addr := taskqueue.WithHost(mr.Addr())
-	t.Cleanup(func() {
-		mr.CtxCancel()
-		mr.Close()
-	})
+	mr := RunT(t)
+	var ctx, addr taskqueue.Option
+	if UseMini {
+		ctx = taskqueue.WithContext(mr.Ctx)
+		addr = taskqueue.WithHost(mr.Addr())
+	} else {
+		ctx = taskqueue.WithContext(Ctx)
+		addr = taskqueue.WithHost(Addr)
+	}
 
 	name := fmt.Sprintf("%s--%s", t.Name(), time.Now().Format(time.RFC3339Nano))
 	queue, err := taskqueue.NewBasic(name, ctx, addr)
