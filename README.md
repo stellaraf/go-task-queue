@@ -16,7 +16,9 @@
   <br/>
   <br/>
 
-  # Usage
+</div>
+
+# Usage
 
   ## Basic Task Queue
   `BasicTaskQueue` is a simple task queue that stores tasks as strings.
@@ -82,5 +84,3 @@
     taskqueue.WithTLSConfig(&tls.Config{InsecureSkipVerify: true}),    
   )
   ```
-
-</div>
