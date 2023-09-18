@@ -19,7 +19,7 @@ var Addr string
 var Ctx context.Context
 var UseMini bool
 var RunT func(t miniredis.Tester) *miniredis.Miniredis = func(t miniredis.Tester) *miniredis.Miniredis {
-	Addr = "localhost:6379"
+	Addr = "redis:6379"
 	Ctx = context.Background()
 	UseMini = false
 	return nil
