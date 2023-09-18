@@ -3,9 +3,8 @@ package taskqueue
 import (
 	"context"
 	"crypto/tls"
+	"net/url"
 	"time"
-
-	"github.com/redis/go-redis/v9"
 )
 
 type Options struct {
@@ -80,17 +79,15 @@ func getOptions(setters []Option) (*Options, error) {
 		setter(options)
 	}
 	if options.URI != "" {
-		parsed, err := redis.ParseURL(options.URI)
+		parsed, err := url.Parse(options.URI)
 		if err != nil {
 			return nil, err
 		}
-		WithHost(parsed.Addr)(options)
-		if parsed.Username != "" {
-			WithUsername(parsed.Username)(options)
-		}
-		if parsed.Password != "" {
-			WithPassword(parsed.Password)(options)
-		}
+		username := parsed.User.Username()
+		password, _ := parsed.User.Password()
+		WithHost(parsed.Host)(options)
+		WithUsername(username)(options)
+		WithPassword(password)(options)
 	}
 	return options, nil
 }
