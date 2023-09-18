@@ -84,6 +84,7 @@ func getOptions(setters []Option) (*Options, error) {
 		if err != nil {
 			return nil, err
 		}
+		WithHost(parsed.Addr)(options)
 		if parsed.Username != "" {
 			WithUsername(parsed.Username)(options)
 		}
