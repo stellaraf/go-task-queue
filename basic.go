@@ -9,9 +9,10 @@ import (
 
 // BasicTaskQueue implements a FIFO task queue of string values.
 type BasicTaskQueue struct {
-	Name  string
-	Redis redis.UniversalClient
-	ctx   context.Context
+	Name    string
+	Redis   redis.UniversalClient
+	ctx     context.Context
+	noRetry bool
 }
 
 // NewBasic creates a new BasicTaskQueue instance.
@@ -35,9 +36,10 @@ func NewBasic(name string, option ...Option) (*BasicTaskQueue, error) {
 		return nil, err
 	}
 	taskQueue := &BasicTaskQueue{
-		Name:  name,
-		Redis: redisClient,
-		ctx:   options.Context,
+		Name:    name,
+		Redis:   redisClient,
+		ctx:     options.Context,
+		noRetry: options.NoRetry,
 	}
 	return taskQueue, nil
 }

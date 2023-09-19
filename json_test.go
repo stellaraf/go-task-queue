@@ -1,6 +1,7 @@
 package taskqueue_test
 
 import (
+	"encoding/json"
 	"fmt"
 	"testing"
 	"time"
@@ -9,6 +10,14 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+type RetryValue struct {
+	Value string `json:"value"`
+}
+
+func (v *RetryValue) UnmarshalJSON([]byte) error {
+	return fmt.Errorf("wrong")
+}
 
 func Test_NewJSONTaskQueue(t *testing.T) {
 	name := fmt.Sprintf("%s--%s", t.Name(), time.Now().Format(time.RFC3339Nano))
@@ -188,6 +197,55 @@ func TestJSONTaskQueue_Pop(t *testing.T) {
 		assert.Equal(t, value3.Number, popped2.Number)
 		size := queue.Size()
 		assert.Equal(t, zero, size)
+	})
+
+	t.Run("with retry", func(t *testing.T) {
+		name := fmt.Sprintf("%s--%s", t.Name(), time.Now().Format(time.RFC3339Nano))
+		queue, err := taskqueue.NewJSON(name, ctx, addr)
+		require.NoError(t, err)
+		v := RetryValue{"value"}
+		err = queue.Add(v)
+		require.NoError(t, err)
+		var popped *RetryValue
+		err = queue.Pop(&popped)
+		assert.NoError(t, err)
+		assert.Equal(t, uint64(1), queue.Size())
+		queue.Clear()
+	})
+
+	t.Run("with no retry", func(t *testing.T) {
+		name := fmt.Sprintf("%s--%s", t.Name(), time.Now().Format(time.RFC3339Nano))
+		queue, err := taskqueue.NewJSON(name, ctx, addr, taskqueue.WithNoRetry())
+		require.NoError(t, err)
+		v := RetryValue{"value"}
+		err = queue.Add(v)
+		require.NoError(t, err)
+		var popped *RetryValue
+		err = queue.Pop(&popped)
+		assert.Error(t, err)
+		assert.Equal(t, zero, queue.Size())
+	})
+
+	t.Run("retry value is equal to original", func(t *testing.T) {
+		name := fmt.Sprintf("%s--%s", t.Name(), time.Now().Format(time.RFC3339Nano))
+		queue, err := taskqueue.NewJSON(name, ctx, addr)
+		require.NoError(t, err)
+		in := RetryValue{"value"}
+		inB, err := json.Marshal(in)
+		require.NoError(t, err)
+		err = queue.Add(in)
+		require.NoError(t, err)
+		assert.Equal(t, uint64(1), queue.Size())
+
+		var out *RetryValue
+		err = queue.Pop(&out)
+		assert.NoError(t, err)
+		outB, err := queue.PopBytes()
+		require.NoError(t, err)
+		assert.Equal(t, inB, outB)
+		t.Cleanup(func() {
+			queue.Clear()
+		})
 	})
 }
 

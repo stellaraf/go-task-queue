@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/pkg/errors"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -13,8 +14,9 @@ type JSONTaskQueue struct {
 	// Name represents the Redis key.
 	Name string
 	// Redis is the underlying Redis instance.
-	Redis redis.UniversalClient
-	ctx   context.Context
+	Redis   redis.UniversalClient
+	ctx     context.Context
+	noRetry bool
 }
 
 // NewJSON creates a new JSONTaskQueue instance.
@@ -38,9 +40,10 @@ func NewJSON(name string, option ...Option) (*JSONTaskQueue, error) {
 		return nil, err
 	}
 	taskQueue := &JSONTaskQueue{
-		Name:  name,
-		Redis: redisClient,
-		ctx:   options.Context,
+		Name:    name,
+		Redis:   redisClient,
+		ctx:     options.Context,
+		noRetry: options.NoRetry,
 	}
 	return taskQueue, nil
 }
@@ -89,7 +92,25 @@ func (q *JSONTaskQueue) Pop(value any) error {
 	if err != nil {
 		return nil
 	}
-	return json.Unmarshal(popped, value)
+	err = json.Unmarshal(popped, value)
+	if err != nil {
+		if !q.noRetry {
+			added, err := q.Redis.RPush(q.ctx, q.Name, popped).Result()
+			if err != nil {
+				return errors.Wrap(err, "failed to re-add task to queue after unmarshal failure")
+			}
+			if added == 0 {
+				return fmt.Errorf("failed to re-add task to queue after unmarshal failure")
+			}
+			return nil
+		}
+		return err
+	}
+	return nil
+}
+
+func (q *JSONTaskQueue) PopBytes() ([]byte, error) {
+	return q.Redis.LPop(q.ctx, q.Name).Bytes()
 }
 
 // Remove removes a task from the queue.

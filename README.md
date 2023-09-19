@@ -81,6 +81,8 @@
     // Set a Redis read/write timeout.
     taskqueue.WithTimeout(time.Seconds*10),
     // Add your own TLS configuration.
-    taskqueue.WithTLSConfig(&tls.Config{InsecureSkipVerify: true}),    
+    taskqueue.WithTLSConfig(&tls.Config{InsecureSkipVerify: true}),
+    // Don't re-add tasks to the queue that fail when unmarshaled.
+    taskqueue.WithNoRetry(),
   )
   ```

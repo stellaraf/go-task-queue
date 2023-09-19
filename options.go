@@ -15,6 +15,7 @@ type Options struct {
 	URI       string
 	Context   context.Context
 	Timeout   time.Duration
+	NoRetry   bool
 }
 
 type Option func(*Options)
@@ -68,12 +69,21 @@ func WithTimeout(timeout time.Duration) Option {
 	}
 }
 
+// WithNoRetry enables or disables task retry, which re-adds the task back to the queue if an error
+// occurs while retrieving it.
+func WithNoRetry() Option {
+	return func(opts *Options) {
+		opts.NoRetry = true
+	}
+}
+
 func getOptions(setters []Option) (*Options, error) {
 	options := &Options{
 		Host:      "localhost:6379",
 		TLSConfig: nil,
 		Context:   context.Background(),
 		Timeout:   time.Second * 3,
+		NoRetry:   false,
 	}
 	for _, setter := range setters {
 		setter(options)
