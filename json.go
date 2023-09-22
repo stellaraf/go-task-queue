@@ -2,6 +2,7 @@ package taskqueue
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 
@@ -90,7 +91,10 @@ func (q *JSONTaskQueue) Pop(value any) error {
 	pop := q.Redis.LPop(q.ctx, q.Name)
 	popped, err := pop.Bytes()
 	if err != nil {
-		return nil
+		if err == redis.Nil {
+			return fmt.Errorf("no values remain in queue")
+		}
+		return err
 	}
 	err = json.Unmarshal(popped, value)
 	if err != nil {
@@ -130,4 +134,49 @@ func (q *JSONTaskQueue) Remove(task any) error {
 func (q *JSONTaskQueue) Clear() error {
 	_, err := q.Redis.Del(q.ctx, q.Name).Result()
 	return err
+}
+
+func (q *JSONTaskQueue) Get(index int64, target any) error {
+	value, err := q.Redis.LIndex(q.ctx, q.Name, index).Bytes()
+	if err != nil {
+		if err == redis.Nil {
+			return fmt.Errorf("index %d does not exist in queue", index)
+		}
+		return err
+	}
+	err = json.Unmarshal(value, target)
+	if err != nil {
+		if !q.noRetry {
+			_, err := q.Redis.LSet(q.ctx, q.Name, index, value).Result()
+			if err != nil {
+				return errors.Wrap(err, "failed to re-add task to queue after unmarshal failure")
+			}
+			return nil
+		}
+		return err
+	}
+	return nil
+}
+
+func (q *JSONTaskQueue) RemoveIndex(index int64) error {
+	value, err := q.Redis.LIndex(q.ctx, q.Name, index).Result()
+	if err != nil {
+		if err == redis.Nil {
+			return fmt.Errorf("index %d does not exist in queue", index)
+		}
+		return err
+	}
+	encoded := base64.StdEncoding.EncodeToString([]byte(value))
+	_, err = q.Redis.LSet(q.ctx, q.Name, index, encoded).Result()
+	if err != nil {
+		return err
+	}
+	removed, err := q.Redis.LRem(q.ctx, q.Name, 1, encoded).Result()
+	if err != nil {
+		return err
+	}
+	if removed == 0 {
+		return fmt.Errorf("failed to remove value item %d from queue", index)
+	}
+	return nil
 }

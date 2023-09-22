@@ -2,6 +2,7 @@ package taskqueue
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 
 	"github.com/redis/go-redis/v9"
@@ -93,4 +94,39 @@ func (q *BasicTaskQueue) Remove(task any) error {
 func (q *BasicTaskQueue) Clear() error {
 	_, err := q.Redis.Del(q.ctx, q.Name).Result()
 	return err
+}
+
+// Get retrieves an item from the queue based on its index.
+func (q *BasicTaskQueue) Get(index int64) (string, error) {
+	value, err := q.Redis.LIndex(q.ctx, q.Name, index).Result()
+	if err != nil {
+		if err == redis.Nil {
+			return "", nil
+		}
+		return "", err
+	}
+	return value, nil
+}
+
+func (q *BasicTaskQueue) RemoveIndex(index int64) error {
+	value, err := q.Redis.LIndex(q.ctx, q.Name, index).Result()
+	if err != nil {
+		if err == redis.Nil {
+			return fmt.Errorf("index %d does not exist in queue", index)
+		}
+		return err
+	}
+	encoded := base64.StdEncoding.EncodeToString([]byte(value))
+	_, err = q.Redis.LSet(q.ctx, q.Name, index, encoded).Result()
+	if err != nil {
+		return err
+	}
+	removed, err := q.Redis.LRem(q.ctx, q.Name, 1, encoded).Result()
+	if err != nil {
+		return err
+	}
+	if removed == 0 {
+		return fmt.Errorf("failed to remove value item %d from queue", index)
+	}
+	return nil
 }

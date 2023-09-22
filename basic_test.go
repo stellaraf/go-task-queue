@@ -211,3 +211,69 @@ func TestBasicTaskQueue_Remove(t *testing.T) {
 		assert.Equal(t, zero, size)
 	})
 }
+
+func TestBasicTaskQueue(t *testing.T) {
+	mr := RunT(t)
+	var ctx, addr taskqueue.Option
+	if UseMini {
+		ctx = taskqueue.WithContext(mr.Ctx)
+		addr = taskqueue.WithHost(mr.Addr())
+	} else {
+		ctx = taskqueue.WithContext(Ctx)
+		addr = taskqueue.WithHost(Addr)
+	}
+
+	name := fmt.Sprintf("%s--%s", t.Name(), time.Now().Format(time.RFC3339Nano))
+	queue, err := taskqueue.NewBasic(name, ctx, addr)
+	defer queue.Clear()
+	require.NoError(t, err)
+	value := "value"
+	t.Run("add value", func(t *testing.T) {
+		err := queue.Add(value)
+		require.NoError(t, err)
+	})
+	t.Run("get value", func(t *testing.T) {
+		got, err := queue.Get(0)
+		require.NoError(t, err)
+		assert.Equal(t, value, got)
+	})
+	t.Run("ensure no matching index is empty", func(t *testing.T) {
+		got, err := queue.Get(5)
+		require.NoError(t, err)
+		assert.Equal(t, "", got)
+	})
+}
+
+func TestBasicTaskQueue_RemoveIndex(t *testing.T) {
+	mr := RunT(t)
+	var ctx, addr taskqueue.Option
+	if UseMini {
+		ctx = taskqueue.WithContext(mr.Ctx)
+		addr = taskqueue.WithHost(mr.Addr())
+	} else {
+		ctx = taskqueue.WithContext(Ctx)
+		addr = taskqueue.WithHost(Addr)
+	}
+
+	name := fmt.Sprintf("%s--%s", t.Name(), time.Now().Format(time.RFC3339Nano))
+	queue, err := taskqueue.NewBasic(name, ctx, addr)
+	defer queue.Clear()
+	require.NoError(t, err)
+	value := "value"
+	t.Run("add value", func(t *testing.T) {
+		err := queue.Add(value)
+		require.NoError(t, err)
+	})
+	t.Run("remove value by index", func(t *testing.T) {
+		err := queue.RemoveIndex(0)
+		require.NoError(t, err)
+	})
+	t.Run("ensure value is removed", func(t *testing.T) {
+		popped := queue.Pop()
+		assert.Nil(t, popped)
+	})
+	t.Run("ensure no removed items errors", func(t *testing.T) {
+		err := queue.RemoveIndex(5)
+		require.Error(t, err)
+	})
+}

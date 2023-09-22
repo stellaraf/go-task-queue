@@ -381,3 +381,89 @@ func TestJSONTaskQueue_Complex(t *testing.T) {
 		assert.Equal(t, value.NestedPointer.String, popped.NestedPointer.String)
 	})
 }
+
+func TestJSONTaskQueue_Get(t *testing.T) {
+	mr := RunT(t)
+	var ctx, addr taskqueue.Option
+	if UseMini {
+		ctx = taskqueue.WithContext(mr.Ctx)
+		addr = taskqueue.WithHost(mr.Addr())
+	} else {
+		ctx = taskqueue.WithContext(Ctx)
+		addr = taskqueue.WithHost(Addr)
+	}
+
+	name := fmt.Sprintf("%s--%s", t.Name(), time.Now().Format(time.RFC3339Nano))
+	queue, err := taskqueue.NewJSON(name, ctx, addr)
+	defer queue.Clear()
+	require.NoError(t, err)
+
+	type Value struct {
+		String string `json:"string"`
+		Number int    `json:"number"`
+		Bool   bool   `json:"bool"`
+	}
+
+	value := Value{String: "string", Number: 1, Bool: true}
+	t.Run("add value", func(t *testing.T) {
+		err := queue.Add(value)
+		require.NoError(t, err)
+	})
+	t.Run("get value", func(t *testing.T) {
+		var got *Value
+		err := queue.Get(0, &got)
+		require.NoError(t, err)
+		assert.Equal(t, value.String, got.String)
+		assert.Equal(t, value.Number, got.Number)
+		assert.Equal(t, value.Bool, got.Bool)
+	})
+}
+
+func TestJSONTaskQueue_RemoveIndex(t *testing.T) {
+	mr := RunT(t)
+	var ctx, addr taskqueue.Option
+	if UseMini {
+		ctx = taskqueue.WithContext(mr.Ctx)
+		addr = taskqueue.WithHost(mr.Addr())
+	} else {
+		ctx = taskqueue.WithContext(Ctx)
+		addr = taskqueue.WithHost(Addr)
+	}
+
+	name := fmt.Sprintf("%s--%s", t.Name(), time.Now().Format(time.RFC3339Nano))
+	queue, err := taskqueue.NewJSON(name, ctx, addr)
+	defer queue.Clear()
+	require.NoError(t, err)
+
+	type Value struct {
+		String string `json:"string"`
+		Number int    `json:"number"`
+		Bool   bool   `json:"bool"`
+	}
+
+	value := Value{String: "string", Number: 1, Bool: true}
+	t.Run("add value", func(t *testing.T) {
+		err := queue.Add(value)
+		require.NoError(t, err)
+	})
+	t.Run("remove value by index", func(t *testing.T) {
+		err := queue.RemoveIndex(0)
+		require.NoError(t, err)
+	})
+	t.Run("ensure value is removed via get", func(t *testing.T) {
+		var popped *Value
+		err := queue.Get(0, &popped)
+		require.Error(t, err)
+		assert.Nil(t, popped)
+	})
+	t.Run("ensure value is removed via pop", func(t *testing.T) {
+		var popped *Value
+		err := queue.Pop(&popped)
+		require.Error(t, err)
+		assert.Nil(t, popped)
+	})
+	t.Run("ensure no removed items errors", func(t *testing.T) {
+		err := queue.RemoveIndex(5)
+		require.Error(t, err)
+	})
+}
