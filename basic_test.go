@@ -277,3 +277,33 @@ func TestBasicTaskQueue_RemoveIndex(t *testing.T) {
 		require.Error(t, err)
 	})
 }
+
+func TestBasicTaskQueue_Has(t *testing.T) {
+	mr := RunT(t)
+	var ctx, addr taskqueue.Option
+	if UseMini {
+		ctx = taskqueue.WithContext(mr.Ctx)
+		addr = taskqueue.WithHost(mr.Addr())
+	} else {
+		ctx = taskqueue.WithContext(Ctx)
+		addr = taskqueue.WithHost(Addr)
+	}
+
+	name := fmt.Sprintf("%s--%s", t.Name(), time.Now().Format(time.RFC3339Nano))
+	queue, err := taskqueue.NewBasic(name, ctx, addr)
+	defer queue.Clear()
+	require.NoError(t, err)
+	value := "value"
+	t.Run("add value", func(t *testing.T) {
+		err := queue.Add(value)
+		require.NoError(t, err)
+	})
+	t.Run("ensure queue has value", func(t *testing.T) {
+		has := queue.Has(value)
+		require.True(t, has)
+	})
+	t.Run("ensure queue does not have nonexistent value", func(t *testing.T) {
+		has := queue.Has("does not exist")
+		require.False(t, has)
+	})
+}

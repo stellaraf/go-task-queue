@@ -66,6 +66,15 @@ func (q *BasicTaskQueue) Pop() *string {
 	return &value
 }
 
+// Has determines if a queue has an given task.
+func (q *BasicTaskQueue) Has(value string) bool {
+	count, err := q.Redis.LPosCount(q.ctx, q.Name, value, 0, redis.LPosArgs{}).Result()
+	if err != nil {
+		return false
+	}
+	return len(count) > 0
+}
+
 // Add adds any number of tasks to the queue in order. Items provided will be marshaled to JSON.
 func (q *BasicTaskQueue) Add(tasks ...any) error {
 	if len(tasks) == 0 {

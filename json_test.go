@@ -467,3 +467,42 @@ func TestJSONTaskQueue_RemoveIndex(t *testing.T) {
 		require.Error(t, err)
 	})
 }
+
+func TestJSONTaskQueue_Has(t *testing.T) {
+	mr := RunT(t)
+	var ctx, addr taskqueue.Option
+	if UseMini {
+		ctx = taskqueue.WithContext(mr.Ctx)
+		addr = taskqueue.WithHost(mr.Addr())
+	} else {
+		ctx = taskqueue.WithContext(Ctx)
+		addr = taskqueue.WithHost(Addr)
+	}
+
+	name := fmt.Sprintf("%s--%s", t.Name(), time.Now().Format(time.RFC3339Nano))
+	queue, err := taskqueue.NewJSON(name, ctx, addr)
+	defer queue.Clear()
+	require.NoError(t, err)
+
+	type Value struct {
+		String string `json:"string"`
+		Number int    `json:"number"`
+		Bool   bool   `json:"bool"`
+	}
+
+	value := Value{String: "string", Number: 1, Bool: true}
+
+	t.Run("add value", func(t *testing.T) {
+		err := queue.Add(value)
+		require.NoError(t, err)
+	})
+	t.Run("ensure queue has value", func(t *testing.T) {
+		has := queue.Has(&value)
+		require.True(t, has)
+	})
+	t.Run("ensure queue does not have nonexistent value", func(t *testing.T) {
+		other := Value{String: "otherstring", Number: 2, Bool: false}
+		has := queue.Has(&other)
+		require.False(t, has)
+	})
+}

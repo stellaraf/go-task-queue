@@ -59,6 +59,20 @@ func (q *JSONTaskQueue) Size() uint64 {
 	return size
 }
 
+// Has determines if a queue has an given task.
+func (q *JSONTaskQueue) Has(value any) bool {
+	bValue, err := json.Marshal(value)
+	if err != nil {
+		return false
+	}
+	sValue := string(bValue)
+	count, err := q.Redis.LPosCount(q.ctx, q.Name, sValue, 0, redis.LPosArgs{}).Result()
+	if err != nil {
+		return false
+	}
+	return len(count) > 0
+}
+
 // Add adds any number of tasks to the queue in order. Items provided will be marshaled to JSON.
 func (q *JSONTaskQueue) Add(tasks ...any) error {
 	if len(tasks) == 0 {
